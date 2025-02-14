@@ -6,8 +6,10 @@ import * as pdfJS from "pdfjs-dist"
 import "react-pdf/dist/esm/Page/TextLayer.css"
 import "react-pdf/dist/esm/Page/AnnotationLayer.css"
 
-pdfJS.GlobalWorkerOptions.workerSrc =
-				window.location.origin + '/pdf.worker.min.mjs'
+if (typeof window !== 'undefined') { // Check if window is defined (client-side)
+    pdfJS.GlobalWorkerOptions.workerSrc =
+		window.location.origin + '/pdf.worker.min.mjs'
+}
 
 export default function App() {
     const [file, setFile] = useState<File | undefined>(undefined)
