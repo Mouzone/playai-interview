@@ -19,7 +19,7 @@ export default function App() {
 
     const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFile(e.target.files?.[0])
-        setPageNumber(1); // Reset page number when a new file is uploaded
+        setPageNumber(1) // Reset page number when a new file is uploaded
         fetch("/api", {
             method: "POST",
             body: JSON.stringify({
@@ -41,10 +41,15 @@ export default function App() {
                 language:"english"
             })
         })
-            .then(response => response.json())
-            .then(response => console.log(response))
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.blob()
+            })
+            .then(blob => console.log(blob))
             .catch(err => console.error(err))
-    };
+    }
 
     function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
         setNumPages(numPages)
