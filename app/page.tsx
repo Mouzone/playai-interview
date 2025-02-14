@@ -3,6 +3,7 @@
 import {useState} from "react"
 import { Document, Page } from "react-pdf"
 import * as pdfJS from "pdfjs-dist"
+import pdfToText from 'react-pdftotext'
 import "react-pdf/dist/esm/Page/TextLayer.css"
 import "react-pdf/dist/esm/Page/AnnotationLayer.css"
 
@@ -17,14 +18,18 @@ export default function App() {
     const [numPages, setNumPages] = useState<number>(0)
     const [pageNumber, setPageNumber] = useState(1)
 
-    const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         setFile(e.target.files?.[0])
         setPageNumber(1) // Reset page number when a new file is uploaded
-        fetch("/api", {
+        if (!file) {
+            return
+        }
+        const text = await pdfToText(file)
+        const response = await fetch("/api", {
             method: "POST",
             body: JSON.stringify({
                 model:"PlayDialog",
-                text:"Country Mouse: Welcome to my humble home, cousin! Town Mouse: Thank you, cousin. It\'s quite... peaceful here. Country Mouse: It is indeed. I hope you\'re hungry. I\'ve prepared a simple meal of beans, barley, and fresh roots. Town Mouse: Well, it\'s... earthy. Do you eat this every day?",
+                text,
                 voice:"s3://voice-cloning-zero-shot/baf1ef41-36b6-428c-9bdf-50ba54682bd8/original/manifest.json",
                 voice2:"s3://voice-cloning-zero-shot/baf1ef41-36b6-428c-9bdf-50ba54682bd8/original/manifest.json",
                 outputFormat:"mp3",
@@ -41,20 +46,21 @@ export default function App() {
                 language:"english"
             })
         })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.blob()
-            })
-            .then(blob => {
-                const url = URL.createObjectURL(blob);
-                const audio = new Audio(url);
-                audio.controls = true; // Show audio controls
-                document.body.appendChild(audio);
-                audio.play()
-            })
-            .catch(err => console.error(err))
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        try {
+            const blob = await response.blob()
+            const url = URL.createObjectURL(blob);
+            const audio = new Audio(url);
+            audio.controls = true; // Show audio controls
+            document.body.appendChild(audio);
+            audio.play()
+        } catch(err) {
+            console.error(err)
+        }
     }
 
     function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
