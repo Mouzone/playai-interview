@@ -2,10 +2,10 @@
 
 import {useState} from "react"
 import { Document, Page } from "react-pdf"
+import * as pdfJS from "pdfjs-dist"
 import "react-pdf/dist/esm/Page/TextLayer.css"
 import "react-pdf/dist/esm/Page/AnnotationLayer.css"
 
-const pdfJS = await import('pdfjs-dist/')
 pdfJS.GlobalWorkerOptions.workerSrc =
 				window.location.origin + '/pdf.worker.min.mjs'
 
