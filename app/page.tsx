@@ -10,20 +10,20 @@ pdfJS.GlobalWorkerOptions.workerSrc =
 				window.location.origin + '/pdf.worker.min.mjs'
 
 export default function App() {
-    const [file, setFile] = useState(null)
-    const [numPages, setNumPages] = useState(null)
+    const [file, setFile] = useState<File | undefined>(undefined)
+    const [numPages, setNumPages] = useState<number>(0)
     const [pageNumber, setPageNumber] = useState(1)
 
-    const onFileChange = (event) => {
-        setFile(event.target.files[0])
+    const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setFile(e.target.files?.[0])
         setPageNumber(1); // Reset page number when a new file is uploaded
     };
 
-    function onDocumentLoadSuccess({ numPages }) {
+    function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
         setNumPages(numPages)
     }
 
-    function changePage(amount) {
+    function changePage(amount: number) {
         setPageNumber(Math.min(Math.max(1, pageNumber + amount), numPages))
     }
 
