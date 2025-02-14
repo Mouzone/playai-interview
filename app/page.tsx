@@ -31,18 +31,12 @@ export default function App() {
                 model:"PlayDialog",
                 text,
                 voice:"s3://voice-cloning-zero-shot/baf1ef41-36b6-428c-9bdf-50ba54682bd8/original/manifest.json",
-                voice2:"s3://voice-cloning-zero-shot/baf1ef41-36b6-428c-9bdf-50ba54682bd8/original/manifest.json",
                 outputFormat:"mp3",
                 speed:1,
                 sampleRate:24000,
                 seed:null,
                 temperature:null,
-                turnPrefix:"Country Mouse:",
-                turnPrefix2:"Town Mouse:",
-                prompt:"<string>",
-                prompt2:"<string>",
                 voiceConditioningSeconds:20,
-                voiceConditioningSeconds2:20,
                 language:"english"
             })
         })
