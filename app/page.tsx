@@ -1,70 +1,64 @@
-'use client';
-import { useEffect, useRef } from 'react';
+'use client'
+
+import {useState} from "react"
+import { Document, Page } from "react-pdf"
+import "react-pdf/dist/esm/Page/TextLayer.css"
+import "react-pdf/dist/esm/Page/AnnotationLayer.css"
+
+const pdfJS = await import('pdfjs-dist/build/pdf')
+pdfJS.GlobalWorkerOptions.workerSrc =
+				window.location.origin + '/pdf.worker.min.mjs'
 
 export default function App() {
-	const canvasRef = useRef(null);
-	const renderTaskRef = useRef(null); // Ref to store the current render task.
+    const [file, setFile] = useState(null)
+    const [numPages, setNumPages] = useState(null)
+    const [pageNumber, setPageNumber] = useState(1)
 
-	useEffect(() => {
-		let isCancelled = false;
+    const onFileChange = (event) => {
+        setFile(event.target.files[0])
+        setPageNumber(1); // Reset page number when a new file is uploaded
+    };
 
-		(async function () {
-			// Import pdfjs-dist dynamically for client-side rendering.
-			const pdfJS = await import('pdfjs-dist/build/pdf');
+    function onDocumentLoadSuccess({ numPages }) {
+        setNumPages(numPages)
+    }
 
-			// Set up the worker.
-			pdfJS.GlobalWorkerOptions.workerSrc =
-				window.location.origin + '/pdf.worker.min.mjs';
+    function changePage(amount) {
+        setPageNumber(Math.min(Math.max(1, pageNumber + amount), numPages))
+    }
 
-			// Load the PDF document.
-			const pdf = await pdfJS.getDocument('example.pdf').promise;
-
-			// Get the first page.
-			const page = await pdf.getPage(1);
-			const viewport = page.getViewport({ scale: 1.5 });
-
-			// Prepare the canvas.
-			const canvas = canvasRef.current;
-			const canvasContext = canvas.getContext('2d');
-			canvas.height = viewport.height;
-			canvas.width = viewport.width;
-
-			// Ensure no other render tasks are running.
-			if (renderTaskRef.current) {
-				await renderTaskRef.current.promise;
-			}
-
-			// Render the page into the canvas.
-			const renderContext = { canvasContext, viewport };
-			const renderTask = page.render(renderContext);
-
-			// Store the render task.
-			renderTaskRef.current = renderTask;
-
-			// Wait for rendering to finish.
-			try {
-				await renderTask.promise;
-			} catch (error) {
-				if (error.name === 'RenderingCancelledException') {
-					console.log('Rendering cancelled.');
-				} else {
-					console.error('Render error:', error);
-				}
-			}
-
-			if (!isCancelled) {
-				console.log('Rendering completed');
-			}
-		})();
-
-		// Cleanup function to cancel the render task if the component unmounts.
-		return () => {
-			isCancelled = true;
-			if (renderTaskRef.current) {
-				renderTaskRef.current.cancel();
-			}
-		};
-	}, []);
-
-	return <canvas ref={canvasRef} style={{ height: '100vh' }} />;
+	return (
+        <>
+            <input type="file" accept=".pdf" onChange={onFileChange} />
+            <div>
+                {file && (
+                <Document file={file} onLoadSuccess={onDocumentLoadSuccess}>
+                    <Page pageNumber={pageNumber} />
+                </Document>
+                )}
+                {file && numPages && (
+                <div>
+                    <button
+                        type="button"
+                        disabled={pageNumber <= 1}
+                        onClick={() => changePage(-1)}
+                    >
+                        Previous
+                    </button>
+                    <span>
+                        Page {pageNumber} of {numPages}
+                    </span>
+                    <button
+                        type="button"
+                        disabled={pageNumber >= numPages}
+                        onClick={() => changePage(1)}
+                    >
+                        Next
+                    </button>
+                </div>
+                )}
+                {!file && <p>No file selected.</p>} {/* Message when no file is selected */}
+            </div>
+        </>
+    )
 }
