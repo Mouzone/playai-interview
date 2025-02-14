@@ -14,7 +14,7 @@ export async function POST(request: Request) {
             } as HeadersInit,
             body: JSON.stringify(requestBody)
         });
-        
+
         if (!response.ok) {
             const errorData = await response.json();
             console.error("API Error:", response.status, errorData);

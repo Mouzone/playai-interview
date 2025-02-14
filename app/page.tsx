@@ -1,6 +1,6 @@
 'use client'
 
-import {useState} from "react"
+import {useState, useEffect} from "react"
 import { Document, Page } from "react-pdf"
 import * as pdfJS from "pdfjs-dist"
 import pdfToText from 'react-pdftotext'
@@ -17,16 +17,36 @@ export default function App() {
     const [file, setFile] = useState<File | undefined>(undefined)
     const [numPages, setNumPages] = useState<number>(0)
     const [pageNumber, setPageNumber] = useState(1)
+    const [isLoadingAudio, setIsLoadingAudio] = useState(false)
+    const [audio, setAudio] = useState<HTMLAudioElement | null>(null) // Store the audio element
+
+    useEffect(() => {
+        return () => {
+            if (audio) {
+                audio.pause()
+                URL.revokeObjectURL(audio.src) // Use audio.src
+            }
+        }
+    }, [audio])
 
     const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        setFile(e.target.files?.[0])
+        const selectedFile = e.target.files?.[0]
+        setFile(selectedFile)
+
         setPageNumber(1) // Reset page number when a new file is uploaded
-        if (!file) {
+        if (!selectedFile) {
             return
         }
-        const text = await pdfToText(file)
+        console.log(selectedFile)
+        console.log("parsing text")
+        const text = await pdfToText(selectedFile)
+
+        console.log("uploading")
         const response = await fetch("/api", {
             method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
             body: JSON.stringify({
                 model:"PlayDialog",
                 text,
@@ -41,19 +61,39 @@ export default function App() {
             })
         })
 
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
+        console.log("starting stream")
         try {
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status} ${response.statusText}`) 
+            }
+            setIsLoadingAudio(true)
             const blob = await response.blob()
-            const url = URL.createObjectURL(blob);
-            const audio = new Audio(url);
-            audio.controls = true; // Show audio controls
-            document.body.appendChild(audio);
+            const audioUrl = URL.createObjectURL(blob)
+        
+            const audio = new Audio(audioUrl)
+            setAudio(audio)
+            audio.controls = true
             audio.play()
-        } catch(err) {
-            console.error(err)
+        
+            audio.onended = () => URL.revokeObjectURL(audioUrl) 
+        
+            audio.onerror = (error) => {
+              console.error("Audio playback error:", error) 
+              URL.revokeObjectURL(audioUrl) 
+            }
+        
+            audio.onprogress = () => {
+                if (!isNaN(audio.duration)) { // Check if duration is valid
+                    console.log("Audio loading progress: ", audio.buffered.length / audio.duration)
+                } else {
+                    console.log("Audio loading progress: ", audio.buffered.length) 
+                }
+            }
+
+            setIsLoadingAudio(false)
+        } catch (error) {
+            console.error("Error fetching or playing audio:", error) 
+            setIsLoadingAudio(false)
         }
     }
 
@@ -74,6 +114,8 @@ export default function App() {
                     <Page pageNumber={pageNumber} />
                 </Document>
                 )}
+                {isLoadingAudio && <p>Loading audio...</p>}
+                {audio && <audio controls />}
                 {file && numPages && (
                 <div>
                     <button
