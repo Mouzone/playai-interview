@@ -47,7 +47,13 @@ export default function App() {
                 }
                 return response.blob()
             })
-            .then(blob => console.log(blob))
+            .then(blob => {
+                const url = URL.createObjectURL(blob);
+                const audio = new Audio(url);
+                audio.controls = true; // Show audio controls
+                document.body.appendChild(audio);
+                audio.play()
+            })
             .catch(err => console.error(err))
     }
 
