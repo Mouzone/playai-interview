@@ -7,6 +7,7 @@ import pdfToText from 'react-pdftotext'
 import "react-pdf/dist/esm/Page/TextLayer.css"
 import "react-pdf/dist/esm/Page/AnnotationLayer.css"
 import { voices } from "./consts"
+import { AduioControllable } from "./types"
 
 if (typeof window !== 'undefined') {
     pdfJS.GlobalWorkerOptions.workerSrc =
@@ -15,11 +16,12 @@ if (typeof window !== 'undefined') {
 
 export default function App() {
     const [file, setFile] = useState<File | undefined>(undefined)
+    const [text, setText] = useState<string | null>(null)
     const [numPages, setNumPages] = useState<number>(0)
     const [pageNumber, setPageNumber] = useState(1)
     const [isLoadingAudio, setIsLoadingAudio] = useState(false)
     const [audioUrl, setAudioUrl] = useState<string | null>(null)
-    const [audioControllables, setAudioControllables] = useState({voice: "Angelo", speed: 1, temperature: 0})
+    const [audioControllables, setAudioControllables] = useState<AduioControllable>({voice: "Angelo", speed: 1, temperature: .1})
     const audioRef = useRef<HTMLAudioElement | null>(null) // Ref for the audio element
 
     useEffect(() => {
@@ -51,8 +53,12 @@ export default function App() {
         }
 
         console.log("parsing text")
-        const text = await pdfToText(selectedFile)
+        const parsedText = await pdfToText(selectedFile)
+        setText(parsedText)
+    }
 
+    const onSubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
         console.log("uploading")
         const response = await fetch("/api", {
             method: "POST",
@@ -67,7 +73,7 @@ export default function App() {
                 speed: audioControllables["speed"],
                 sampleRate: 24000,
                 seed: null,
-                temperature: audioControllables["temperature"],
+                temperature: null,
                 voiceConditioningSeconds: 20,
                 language: "english"
             })
@@ -153,37 +159,41 @@ export default function App() {
                 </div>
                 
                 <div className="flex items-center">
-                    <input type="file" accept=".pdf" onChange={onFileChange} disabled={isLoadingAudio}/>
-                    {audioUrl && (
-                        <audio
-                            ref={audioRef}
-                            controls
-                            src={audioUrl} // Set the audio source dynamically
-                            autoPlay // Auto-play the audio
-                            onEnded={() => {
-                                URL.revokeObjectURL(audioUrl)
-                                setAudioUrl(null)
-                            }}
-                            onError={(error) => {
-                                console.error("Audio playback error:", error)
-                                URL.revokeObjectURL(audioUrl)
-                                setAudioUrl(null)
-                            }}
-                        />
-                    )}
-                    
+                    <div className="flex flex-col gap-10">
+                        <input type="file" accept=".pdf" onChange={onFileChange} disabled={isLoadingAudio}/>
+                        {audioUrl && (
+                            <audio
+                                ref={audioRef}
+                                controls
+                                src={audioUrl} // Set the audio source dynamically
+                                autoPlay // Auto-play the audio
+                                onEnded={() => {
+                                    URL.revokeObjectURL(audioUrl)
+                                    setAudioUrl(null)
+                                }}
+                                onError={(error) => {
+                                    console.error("Audio playback error:", error)
+                                    URL.revokeObjectURL(audioUrl)
+                                    setAudioUrl(null)
+                                }}
+                            />
+                        )}
+                    </div>                    
                     {/* Audio Controllables */}
-                    <div className="space-y-4 p-6 bg-gray-100 rounded-lg shadow-md">
+                    <form className="space-y-4 p-6 bg-gray-100 rounded-lg shadow-md" onSubmit={onSubmit}>
                         {/* Dropdown for Voice Selection */}
                         <div className="flex flex-col space-y-2">
-                            <label className="text-sm font-medium text-gray-700">Select Voice:</label>
+                            <label htmlFor="voice-select" className="text-sm font-medium text-gray-700">
+                                Select Voice:
+                            </label>
                             <select
+                                id="voice-select"
                                 onChange={(e) =>
-                                    setAudioControllables({ ...audioControllables, voice: e.target.value })
+                                    setAudioControllables({ ...audioControllables, voice: e.target.value as keyof typeof voices })
                                 }
                                 className="p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             >
-                            {Object.keys(voices).map(key => (
+                            {Object.keys(voices).map((key) => (
                                 <option key={key} value={key}>
                                     {key}
                                 </option>
@@ -193,48 +203,54 @@ export default function App() {
 
                         {/* Slider for Speed */}
                         <div className="flex flex-col space-y-2">
-                            <label className="text-sm font-medium text-gray-700">
+                            <label htmlFor="speed-slider" className="text-sm font-medium text-gray-700">
                                 Speed: {audioControllables.speed}
                             </label>
                             <input
+                                id="speed-slider"
                                 type="range"
                                 min="0"
                                 max="5"
+                                step=".1"
                                 value={audioControllables.speed}
                                 onChange={(e) => {
-                                    const newValue = parseFloat(e.target.value) 
+                                    const newValue = parseFloat(e.target.value);
                                     setAudioControllables({
                                         ...audioControllables,
-                                        speed: newValue === 0 ? 0.1 : newValue,
+                                        speed: newValue === 0 ? 0.1 : newValue, // Ensure speed is never 0
                                     })
-                                }
-                                    
-                                }
+                                }}
                                 className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                         </div>
 
                         {/* Slider for Temperature */}
                         <div className="flex flex-col space-y-2">
-                            <label className="text-sm font-medium text-gray-700">
+                            <label htmlFor="temperature-slider" className="text-sm font-medium text-gray-700">
                                 Temperature: {audioControllables.temperature}
                             </label>
                             <input
+                                id="temperature-slider"
                                 type="range"
                                 min="0"
                                 max="2"
                                 step=".1"
                                 value={audioControllables.temperature}
-                                onChange={(e) =>
+                                onChange={(e) => {
+                                    const newValue = parseFloat(e.target.value);
                                     setAudioControllables({
-                                    ...audioControllables,
-                                    temperature: parseFloat(e.target.value),
+                                        ...audioControllables,
+                                        temperature: newValue === 0 ? 0.1 : newValue, // Ensure speed is never 0
                                     })
+                                }
                                 }
                                 className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                         </div>
-                    </div>
+                        <button type="submit" className="w-full px-6 py-3 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75 transition-all duration-200">
+                            Generate Audio 
+                        </button>
+                    </form>
                 </div>
             </div>
         </>
