@@ -18,6 +18,7 @@ export default function App() {
     const [pageNumber, setPageNumber] = useState(1)
     const [isLoadingAudio, setIsLoadingAudio] = useState(false)
     const [audioUrl, setAudioUrl] = useState<string | null>(null)
+    const [audioControllables, setAudioControllables] = useState({speed: 1, temperature: null})
     const audioRef = useRef<HTMLAudioElement | null>(null) // Ref for the audio element
 
     useEffect(() => {
@@ -104,53 +105,64 @@ export default function App() {
 
     return (
         <>
-            <input type="file" accept=".pdf" onChange={onFileChange} disabled={isLoadingAudio}/>
-            <div>
-                {file && (
-                    <Document file={file} onLoadSuccess={onDocumentLoadSuccess}>
-                        <Page pageNumber={pageNumber} />
-                    </Document>
-                )}
-                {isLoadingAudio && <p>Loading audio...</p>}
-                {audioUrl && (
-                    <audio
-                        ref={audioRef}
-                        controls
-                        src={audioUrl} // Set the audio source dynamically
-                        autoPlay // Auto-play the audio
-                        onEnded={() => {
-                            URL.revokeObjectURL(audioUrl)
-                            setAudioUrl(null)
-                        }}
-                        onError={(error) => {
-                            console.error("Audio playback error:", error)
-                            URL.revokeObjectURL(audioUrl)
-                            setAudioUrl(null)
-                        }}
-                    />
-                )}
-                {file && numPages && (
-                    <div>
-                        <button
-                            type="button"
-                            disabled={pageNumber <= 1}
-                            onClick={() => changePage(-1)}
-                        >
-                            Previous
-                        </button>
-                        <span>
-                            Page {pageNumber} of {numPages}
-                        </span>
-                        <button
-                            type="button"
-                            disabled={pageNumber >= numPages}
-                            onClick={() => changePage(1)}
-                        >
-                            Next
-                        </button>
+            {isLoadingAudio && (
+                <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+                    <div className="flex flex-col items-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
+                        <span className="mt-3 text-white">Loading Audio...</span>
                     </div>
-                )}
-                {!file && <p>No file selected.</p>}
+                </div>
+            )}
+            <div className="flex p-10">
+                <div>
+                    {file && (
+                        <Document file={file} onLoadSuccess={onDocumentLoadSuccess}>
+                            <Page pageNumber={pageNumber} />
+                        </Document>
+                    )}
+                    {file && numPages && (
+                        <div className="flex justify-between">
+                            <button
+                                type="button"
+                                disabled={pageNumber <= 1}
+                                onClick={() => changePage(-1)}
+                            >
+                                Previous
+                            </button>
+                            <span>
+                                Page {pageNumber} of {numPages}
+                            </span>
+                            <button
+                                type="button"
+                                disabled={pageNumber >= numPages}
+                                onClick={() => changePage(1)}
+                            >
+                                Next
+                            </button>
+                        </div>
+                    )}
+                </div>
+                
+                <div className="flex items-center">
+                    <input type="file" accept=".pdf" onChange={onFileChange} disabled={isLoadingAudio}/>
+                    {audioUrl && (
+                        <audio
+                            ref={audioRef}
+                            controls
+                            src={audioUrl} // Set the audio source dynamically
+                            autoPlay // Auto-play the audio
+                            onEnded={() => {
+                                URL.revokeObjectURL(audioUrl)
+                                setAudioUrl(null)
+                            }}
+                            onError={(error) => {
+                                console.error("Audio playback error:", error)
+                                URL.revokeObjectURL(audioUrl)
+                                setAudioUrl(null)
+                            }}
+                        />
+                    )}
+                </div>
             </div>
         </>
     )
