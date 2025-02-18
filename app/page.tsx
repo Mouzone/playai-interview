@@ -173,28 +173,67 @@ export default function App() {
                     )}
                     
                     {/* Audio Controllables */}
-                    <div>
-                        <select onChange={(e) => setAudioControllables({...audioControllables, voice: e.target.value})}>
-                            {
-                                Object.entries(voices).map(([key, value]) => {
-                                    return <option value={value}> { key }</option>
-                                })
-                            }
-                        </select>
-                        <input
-                            type="range"
-                            min="0.1"
-                            max="5"
-                            value={audioControllables.speed}
-                            onChange={(e) => setAudioControllables({...audioControllables, speed: parseInt(e.target.value)})}
-                        />
-                        <input
-                            type="range"
-                            min="0"
-                            max="2"
-                            value={audioControllables.temperature}
-                            onChange={(e) => setAudioControllables({...audioControllables, temperature: parseInt(e.target.value)})}
-                        />
+                    <div className="space-y-4 p-6 bg-gray-100 rounded-lg shadow-md">
+                        {/* Dropdown for Voice Selection */}
+                        <div className="flex flex-col space-y-2">
+                            <label className="text-sm font-medium text-gray-700">Select Voice:</label>
+                            <select
+                                onChange={(e) =>
+                                    setAudioControllables({ ...audioControllables, voice: e.target.value })
+                                }
+                                className="p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                            {Object.entries(voices).map(([key, value]) => (
+                                <option key={key} value={value}>
+                                    {key}
+                                </option>
+                            ))}
+                            </select>
+                        </div>
+
+                        {/* Slider for Speed */}
+                        <div className="flex flex-col space-y-2">
+                            <label className="text-sm font-medium text-gray-700">
+                                Speed: {audioControllables.speed}
+                            </label>
+                            <input
+                                type="range"
+                                min="0"
+                                max="5"
+                                value={audioControllables.speed}
+                                onChange={(e) => {
+                                    const newValue = parseFloat(e.target.value) 
+                                    setAudioControllables({
+                                        ...audioControllables,
+                                        speed: newValue === 0 ? 0.1 : newValue,
+                                    })
+                                }
+                                    
+                                }
+                                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                        </div>
+
+                        {/* Slider for Temperature */}
+                        <div className="flex flex-col space-y-2">
+                            <label className="text-sm font-medium text-gray-700">
+                                Temperature: {audioControllables.temperature}
+                            </label>
+                            <input
+                                type="range"
+                                min="0"
+                                max="2"
+                                step=".1"
+                                value={audioControllables.temperature}
+                                onChange={(e) =>
+                                    setAudioControllables({
+                                    ...audioControllables,
+                                    temperature: parseFloat(e.target.value),
+                                    })
+                                }
+                                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                        </div>
                     </div>
                 </div>
             </div>
