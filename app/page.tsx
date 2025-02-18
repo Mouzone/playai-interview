@@ -8,6 +8,7 @@ import "react-pdf/dist/esm/Page/TextLayer.css"
 import "react-pdf/dist/esm/Page/AnnotationLayer.css"
 import { voices } from "./consts"
 import { AduioControllable } from "./types"
+import { TextItem } from "pdfjs-dist/types/src/display/api"
 
 if (typeof window !== 'undefined') {
     pdfJS.GlobalWorkerOptions.workerSrc =
@@ -36,7 +37,10 @@ export default function App() {
         const selectedFile = e.target.files?.[0]
         setFile(selectedFile)
 
-        console.log(selectedFile)
+        if (!selectedFile) {
+            return
+        }
+
         const loadingTask = pdfJS.getDocument({ data: await selectedFile.arrayBuffer() });
         const pdf = await loadingTask.promise;
       
@@ -45,7 +49,7 @@ export default function App() {
       
         // Extract text from the page
         const textContent = await page.getTextContent();
-        const textItems = textContent.items;
+        const textItems = textContent.items as TextItem[];
         const text = textItems.map(item => item.str).join(' ')
 
         setPageNumber(1) // Reset page number when a new file is uploaded
