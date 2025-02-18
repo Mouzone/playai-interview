@@ -1,16 +1,15 @@
 'use client'
 
-import {useState, useEffect} from "react"
+import { useState, useEffect, useRef } from "react"
 import { Document, Page } from "react-pdf"
 import * as pdfJS from "pdfjs-dist"
 import pdfToText from 'react-pdftotext'
 import "react-pdf/dist/esm/Page/TextLayer.css"
 import "react-pdf/dist/esm/Page/AnnotationLayer.css"
 
-
-if (typeof window !== 'undefined') { // Check if window is defined (client-side)
+if (typeof window !== 'undefined') {
     pdfJS.GlobalWorkerOptions.workerSrc =
-		window.location.origin + '/pdf.worker.min.mjs'
+        window.location.origin + '/pdf.worker.min.mjs'
 }
 
 export default function App() {
@@ -18,26 +17,37 @@ export default function App() {
     const [numPages, setNumPages] = useState<number>(0)
     const [pageNumber, setPageNumber] = useState(1)
     const [isLoadingAudio, setIsLoadingAudio] = useState(false)
-    const [audio, setAudio] = useState<HTMLAudioElement | null>(null) // Store the audio element
+    const [audioUrl, setAudioUrl] = useState<string | null>(null) // Store the audio URL
+    const audioRef = useRef<HTMLAudioElement | null>(null) // Ref for the audio element
 
     useEffect(() => {
         return () => {
-            if (audio) {
-                audio.pause()
-                URL.revokeObjectURL(audio.src) // Use audio.src
+            if (audioUrl) {
+                URL.revokeObjectURL(audioUrl) // Clean up the object URL
             }
         }
-    }, [audio])
+    }, [audioUrl])
 
     const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = e.target.files?.[0]
         setFile(selectedFile)
 
         setPageNumber(1) // Reset page number when a new file is uploaded
+
         if (!selectedFile) {
             return
         }
-        console.log(selectedFile)
+
+        // Clean up previous audio
+        if (audioRef.current) {
+            audioRef.current.pause() // Pause the current audio
+            audioRef.current.src = "" // Clear the src to stop loading
+        }
+        if (audioUrl) {
+            URL.revokeObjectURL(audioUrl) // Revoke the previous URL
+            setAudioUrl(null)
+        }
+
         console.log("parsing text")
         const text = await pdfToText(selectedFile)
 
@@ -48,51 +58,38 @@ export default function App() {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                model:"PlayDialog",
+                model: "PlayDialog",
                 text,
-                voice:"s3://voice-cloning-zero-shot/baf1ef41-36b6-428c-9bdf-50ba54682bd8/original/manifest.json",
-                outputFormat:"mp3",
-                speed:1,
-                sampleRate:24000,
-                seed:null,
-                temperature:null,
-                voiceConditioningSeconds:20,
-                language:"english"
+                voice: "s3://voice-cloning-zero-shot/baf1ef41-36b6-428c-9bdf-50ba54682bd8/original/manifest.json",
+                outputFormat: "mp3",
+                speed: 1,
+                sampleRate: 24000,
+                seed: null,
+                temperature: null,
+                voiceConditioningSeconds: 20,
+                language: "english"
             })
         })
 
         console.log("starting stream")
         try {
             if (!response.ok) {
-              throw new Error(`HTTP error! status: ${response.status} ${response.statusText}`) 
+                throw new Error(`HTTP error! status: ${response.status} ${response.statusText}`)
             }
             setIsLoadingAudio(true)
             const blob = await response.blob()
-            const audioUrl = URL.createObjectURL(blob)
-        
-            const audio = new Audio(audioUrl)
-            setAudio(audio)
-            audio.controls = true
-            audio.play()
-        
-            audio.onended = () => URL.revokeObjectURL(audioUrl) 
-        
-            audio.onerror = (error) => {
-              console.error("Audio playback error:", error) 
-              URL.revokeObjectURL(audioUrl) 
-            }
-        
-            audio.onprogress = () => {
-                if (!isNaN(audio.duration)) { // Check if duration is valid
-                    console.log("Audio loading progress: ", audio.buffered.length / audio.duration)
-                } else {
-                    console.log("Audio loading progress: ", audio.buffered.length) 
-                }
+            const newAudioUrl = URL.createObjectURL(blob)
+            setAudioUrl(newAudioUrl) // Set the new audio URL
+
+            // Play the new audio
+            if (audioRef.current) {
+                audioRef.current.src = newAudioUrl
+                audioRef.current.play()
             }
 
             setIsLoadingAudio(false)
         } catch (error) {
-            console.error("Error fetching or playing audio:", error) 
+            console.error("Error fetching or playing audio:", error)
             setIsLoadingAudio(false)
         }
     }
@@ -105,39 +102,55 @@ export default function App() {
         setPageNumber(Math.min(Math.max(1, pageNumber + amount), numPages))
     }
 
-	return (
+    return (
         <>
             <input type="file" accept=".pdf" onChange={onFileChange} />
             <div>
                 {file && (
-                <Document file={file} onLoadSuccess={onDocumentLoadSuccess}>
-                    <Page pageNumber={pageNumber} />
-                </Document>
+                    <Document file={file} onLoadSuccess={onDocumentLoadSuccess}>
+                        <Page pageNumber={pageNumber} />
+                    </Document>
                 )}
                 {isLoadingAudio && <p>Loading audio...</p>}
-                {audio && <audio controls />}
-                {file && numPages && (
-                <div>
-                    <button
-                        type="button"
-                        disabled={pageNumber <= 1}
-                        onClick={() => changePage(-1)}
-                    >
-                        Previous
-                    </button>
-                    <span>
-                        Page {pageNumber} of {numPages}
-                    </span>
-                    <button
-                        type="button"
-                        disabled={pageNumber >= numPages}
-                        onClick={() => changePage(1)}
-                    >
-                        Next
-                    </button>
-                </div>
+                {audioUrl && (
+                    <audio
+                        ref={audioRef} // Attach the ref to the audio element
+                        controls
+                        src={audioUrl} // Set the audio source dynamically
+                        autoPlay // Auto-play the audio
+                        onEnded={() => {
+                            URL.revokeObjectURL(audioUrl) // Clean up the URL when playback ends
+                            setAudioUrl(null)
+                        }}
+                        onError={(error) => {
+                            console.error("Audio playback error:", error)
+                            URL.revokeObjectURL(audioUrl) // Clean up the URL on error
+                            setAudioUrl(null)
+                        }}
+                    />
                 )}
-                {!file && <p>No file selected.</p>} {/* Message when no file is selected */}
+                {file && numPages && (
+                    <div>
+                        <button
+                            type="button"
+                            disabled={pageNumber <= 1}
+                            onClick={() => changePage(-1)}
+                        >
+                            Previous
+                        </button>
+                        <span>
+                            Page {pageNumber} of {numPages}
+                        </span>
+                        <button
+                            type="button"
+                            disabled={pageNumber >= numPages}
+                            onClick={() => changePage(1)}
+                        >
+                            Next
+                        </button>
+                    </div>
+                )}
+                {!file && <p>No file selected.</p>}
             </div>
         </>
     )
