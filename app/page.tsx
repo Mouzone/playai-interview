@@ -62,12 +62,12 @@ export default function App() {
             body: JSON.stringify({
                 model: "PlayDialog",
                 text,
-                voice: "s3://voice-cloning-zero-shot/baf1ef41-36b6-428c-9bdf-50ba54682bd8/original/manifest.json",
+                voice: voices[audioControllables["voice"]],
                 outputFormat: "mp3",
-                speed: 1,
+                speed: audioControllables["speed"],
                 sampleRate: 24000,
                 seed: null,
-                temperature: null,
+                temperature: audioControllables["temperature"],
                 voiceConditioningSeconds: 20,
                 language: "english"
             })
@@ -183,8 +183,8 @@ export default function App() {
                                 }
                                 className="p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             >
-                            {Object.entries(voices).map(([key, value]) => (
-                                <option key={key} value={value}>
+                            {Object.keys(voices).map(key => (
+                                <option key={key} value={key}>
                                     {key}
                                 </option>
                             ))}
