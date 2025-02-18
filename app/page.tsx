@@ -36,6 +36,18 @@ export default function App() {
         const selectedFile = e.target.files?.[0]
         setFile(selectedFile)
 
+        console.log(selectedFile)
+        const loadingTask = pdfJS.getDocument({ data: await selectedFile.arrayBuffer() });
+        const pdf = await loadingTask.promise;
+      
+        // Get the specific page
+        const page = await pdf.getPage(pageNumber);
+      
+        // Extract text from the page
+        const textContent = await page.getTextContent();
+        const textItems = textContent.items;
+        const text = textItems.map(item => item.str).join(' ')
+
         setPageNumber(1) // Reset page number when a new file is uploaded
 
         if (!selectedFile) {
@@ -53,8 +65,7 @@ export default function App() {
         }
 
         console.log("parsing text")
-        const parsedText = await pdfToText(selectedFile)
-        setText(parsedText)
+        setText(text)
     }
 
     const onSubmit = async (e: React.FormEvent) => {
