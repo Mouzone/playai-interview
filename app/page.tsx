@@ -22,7 +22,7 @@ export default function App() {
     const [isLoadingAudio, setIsLoadingAudio] = useState(false)
     const [audioUrl, setAudioUrl] = useState<string | null>(null)
     const [audioControllables, setAudioControllables] = useState<AduioControllable>({voice: "Angelo", speed: 1, temperature: .1})
-    const audioRef = useRef<HTMLAudioElement | null>(null) // Ref for the audio element
+    const audioRef = useRef<HTMLAudioElement | null>(null)
 
     useEffect(() => {
         return () => {
@@ -80,11 +80,12 @@ export default function App() {
         })
 
         console.log("starting stream")
+        setIsLoadingAudio(true)
         try {
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status} ${response.statusText}`)
             }
-            setIsLoadingAudio(true)
+    
             const blob = await response.blob()
             const newAudioUrl = URL.createObjectURL(blob)
             setAudioUrl(newAudioUrl)
@@ -260,8 +261,18 @@ export default function App() {
                                 className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                         </div>
-                        <button type="submit" className="w-full px-6 py-3 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75 transition-all duration-200">
-                            Generate Audio 
+                        <button
+                            type="submit"
+                            className={`w-full px-6 py-3 text-white font-semibold rounded-lg shadow-md transition-all duration-200
+                                ${
+                                    text === null
+                                        ? "bg-gray-400 cursor-not-allowed opacity-75" // Disabled state
+                                        : "bg-blue-500 hover:bg-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75" // Enabled state
+                                }
+                            `}
+                            disabled={text === null}
+                        >
+                            Generate Audio
                         </button>
                     </form>
 
@@ -282,7 +293,6 @@ export default function App() {
                                 }}
                             />
                         )}
-
                 </div>
             </div>
         </>
