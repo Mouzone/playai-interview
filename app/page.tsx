@@ -17,7 +17,7 @@ export default function App() {
     const [numPages, setNumPages] = useState<number>(0)
     const [pageNumber, setPageNumber] = useState(1)
     const [isLoadingAudio, setIsLoadingAudio] = useState(false)
-    const [audioUrl, setAudioUrl] = useState<string | null>(null) // Store the audio URL
+    const [audioUrl, setAudioUrl] = useState<string | null>(null)
     const audioRef = useRef<HTMLAudioElement | null>(null) // Ref for the audio element
 
     useEffect(() => {
@@ -44,7 +44,7 @@ export default function App() {
             audioRef.current.src = "" // Clear the src to stop loading
         }
         if (audioUrl) {
-            URL.revokeObjectURL(audioUrl) // Revoke the previous URL
+            URL.revokeObjectURL(audioUrl) // Remove the previous URL
             setAudioUrl(null)
         }
 
@@ -79,7 +79,7 @@ export default function App() {
             setIsLoadingAudio(true)
             const blob = await response.blob()
             const newAudioUrl = URL.createObjectURL(blob)
-            setAudioUrl(newAudioUrl) // Set the new audio URL
+            setAudioUrl(newAudioUrl)
 
             // Play the new audio
             if (audioRef.current) {
@@ -104,7 +104,7 @@ export default function App() {
 
     return (
         <>
-            <input type="file" accept=".pdf" onChange={onFileChange} />
+            <input type="file" accept=".pdf" onChange={onFileChange} disabled={isLoadingAudio}/>
             <div>
                 {file && (
                     <Document file={file} onLoadSuccess={onDocumentLoadSuccess}>
@@ -114,17 +114,17 @@ export default function App() {
                 {isLoadingAudio && <p>Loading audio...</p>}
                 {audioUrl && (
                     <audio
-                        ref={audioRef} // Attach the ref to the audio element
+                        ref={audioRef}
                         controls
                         src={audioUrl} // Set the audio source dynamically
                         autoPlay // Auto-play the audio
                         onEnded={() => {
-                            URL.revokeObjectURL(audioUrl) // Clean up the URL when playback ends
+                            URL.revokeObjectURL(audioUrl)
                             setAudioUrl(null)
                         }}
                         onError={(error) => {
                             console.error("Audio playback error:", error)
-                            URL.revokeObjectURL(audioUrl) // Clean up the URL on error
+                            URL.revokeObjectURL(audioUrl)
                             setAudioUrl(null)
                         }}
                     />
