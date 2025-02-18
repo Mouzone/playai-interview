@@ -6,6 +6,7 @@ import * as pdfJS from "pdfjs-dist"
 import pdfToText from 'react-pdftotext'
 import "react-pdf/dist/esm/Page/TextLayer.css"
 import "react-pdf/dist/esm/Page/AnnotationLayer.css"
+import { voices } from "./consts"
 
 if (typeof window !== 'undefined') {
     pdfJS.GlobalWorkerOptions.workerSrc =
@@ -18,7 +19,7 @@ export default function App() {
     const [pageNumber, setPageNumber] = useState(1)
     const [isLoadingAudio, setIsLoadingAudio] = useState(false)
     const [audioUrl, setAudioUrl] = useState<string | null>(null)
-    const [audioControllables, setAudioControllables] = useState({speed: 1, temperature: null})
+    const [audioControllables, setAudioControllables] = useState({voice: "Angelo", speed: 1, temperature: 0})
     const audioRef = useRef<HTMLAudioElement | null>(null) // Ref for the audio element
 
     useEffect(() => {
@@ -123,7 +124,7 @@ export default function App() {
                             </Document>
                             </div>
                         ) : (
-                            <div className="w-[600px] h-[800px] flex items-center justify-center bg-gray-100 border border-gray-300 shadow-lg">
+                            <div className="w-[600px] h-[700px] flex items-center justify-center bg-gray-100 border border-gray-300 shadow-lg">
                             <p className="text-gray-500">No PDF file selected</p>
                             </div>
                         )}
@@ -170,6 +171,31 @@ export default function App() {
                             }}
                         />
                     )}
+                    
+                    {/* Audio Controllables */}
+                    <div>
+                        <select onChange={(e) => setAudioControllables({...audioControllables, voice: e.target.value})}>
+                            {
+                                Object.entries(voices).map(([key, value]) => {
+                                    return <option value={value}> { key }</option>
+                                })
+                            }
+                        </select>
+                        <input
+                            type="range"
+                            min="0.1"
+                            max="5"
+                            value={audioControllables.speed}
+                            onChange={(e) => setAudioControllables({...audioControllables, speed: parseInt(e.target.value)})}
+                        />
+                        <input
+                            type="range"
+                            min="0"
+                            max="2"
+                            value={audioControllables.temperature}
+                            onChange={(e) => setAudioControllables({...audioControllables, temperature: parseInt(e.target.value)})}
+                        />
+                    </div>
                 </div>
             </div>
         </>
