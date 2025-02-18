@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from "react"
 import { Document, Page } from "react-pdf"
 import * as pdfJS from "pdfjs-dist"
-import pdfToText from 'react-pdftotext'
 import "react-pdf/dist/esm/Page/TextLayer.css"
 import "react-pdf/dist/esm/Page/AnnotationLayer.css"
 import { voices } from "./consts"
