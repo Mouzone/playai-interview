@@ -113,15 +113,23 @@ export default function App() {
                     </div>
                 </div>
             )}
-            <div className="flex p-10">
+            <div className="flex gap-10 p-10">
                 <div>
-                    {file && (
-                        <Document file={file} onLoadSuccess={onDocumentLoadSuccess}>
-                            <Page pageNumber={pageNumber} />
-                        </Document>
-                    )}
+                    <div className="flex flex-col items-center">
+                        {file ? (
+                            <div className="w-[600px] h-[700px] overflow-hidden border border-gray-300 shadow-lg">
+                            <Document file={file} onLoadSuccess={onDocumentLoadSuccess}>
+                                <Page pageNumber={pageNumber} width={600} />
+                            </Document>
+                            </div>
+                        ) : (
+                            <div className="w-[600px] h-[800px] flex items-center justify-center bg-gray-100 border border-gray-300 shadow-lg">
+                            <p className="text-gray-500">No PDF file selected</p>
+                            </div>
+                        )}
+                    </div>
                     {file && numPages && (
-                        <div className="flex justify-between">
+                        <div className="flex mt-5 justify-between">
                             <button
                                 type="button"
                                 disabled={pageNumber <= 1}
