@@ -132,6 +132,9 @@ export default function App() {
                     }
     
                     // Append the chunk to the SourceBuffer
+                    if (!audioUrl) {
+                        return
+                    }
                     sourceBuffer.appendBuffer(value)
     
                     // Wait for the SourceBuffer to be ready for more data
@@ -319,7 +322,6 @@ export default function App() {
                         Generate Audio
                     </button>
                 </form>
-
                 {audioUrl && (
                     <audio
                         ref={audioRef}
