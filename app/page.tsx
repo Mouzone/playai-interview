@@ -60,100 +60,111 @@ export default function App() {
     const onSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setIsGenerating(true)
+    
         if (!pdf) {
+            setIsGenerating(false)
             return
         }
-        const page = await pdf.getPage(pageNumber)
-        const text = getPageText(page)
-
-        try {
-            const response = await fetch("/api", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    model: "PlayDialog",
-                    text,
-                    voice: voices[audioControllables["voice"]],
-                    outputFormat: "mp3",
-                    speed: audioControllables["speed"],
-                    sampleRate: 24000,
-                    seed: null,
-                    temperature: null,
-                    voiceConditioningSeconds: 20,
-                    language: "english",
-                }),
-            })
     
-            console.log("starting stream")
+        try {
+            const page = await pdf.getPage(pageNumber)
+            const text = await getPageText(page)
+    
+            const response = await fetchAudioStream(text)
     
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status} ${response.statusText}`)
             }
     
-            // Create a MediaSource to handle streaming audio
-            const mediaSource = new MediaSource()
-            const audioUrl = URL.createObjectURL(mediaSource)
-            setAudioUrl(audioUrl)
-    
-            // Set up the audio element
-            if (audioRef.current) {
-                audioRef.current.src = audioUrl
-            }
-    
-            // Handle MediaSource opening
-            mediaSource.addEventListener("sourceopen", async () => {
-                const sourceBuffer = mediaSource.addSourceBuffer('audio/mpeg') // Adjust MIME type if needed
-            
-                const reader = response.body?.getReader()
-                if (!reader) {
-                    throw new Error("Failed to create stream reader")
-                }
-            
-                try {
-                    while (true) {
-                        const { done, value } = await reader.read()
-                        if (done) {
-                            if (mediaSource.readyState === "open") {
-                                mediaSource.endOfStream()
-                            }
-                            break
-                        }
-            
-                        // Wait for the SourceBuffer to be ready for more data
-                        if (sourceBuffer.updating || mediaSource.readyState !== "open") {
-                            // If the SourceBuffer is updating or the MediaSource is not open, wait and retry
-                            await new Promise((resolve) => {
-                                sourceBuffer.addEventListener("updateend", resolve, { once: true })
-                            })
-                            continue // Retry the loop after waiting
-                        }
-            
-                        sourceBuffer.appendBuffer(value)
-            
-                        // Wait for the SourceBuffer to finish processing the current chunk
-                        await new Promise((resolve) => {
-                            sourceBuffer.addEventListener("updateend", resolve, { once: true })
-                        })
-                    }
-                } catch (error) {
-                    console.error("Error processing audio stream:", error)
-                    setIsGenerating(false)
-            
-                    // Clean up MediaSource if an error occurs
-                    if (mediaSource.readyState === "open") {
-                        mediaSource.endOfStream()
-                    }
-                    if (audioUrl) {
-                        URL.revokeObjectURL(audioUrl)
-                        setAudioUrl(null)
-                    }
-                }
-            })
+            await handleAudioStream(response)
     
         } catch (error) {
             console.error("Error fetching or playing audio:", error)
+        } finally {
+            setIsGenerating(false)
+        }
+    }
+    
+    // Helper function to fetch audio stream
+    const fetchAudioStream = async (text: string) => {
+        return await fetch("/api", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                model: "PlayDialog",
+                text,
+                voice: voices[audioControllables["voice"]],
+                outputFormat: "mp3",
+                speed: audioControllables["speed"],
+                sampleRate: 24000,
+                seed: null,
+                temperature: null,
+                voiceConditioningSeconds: 20,
+                language: "english",
+            }),
+        })
+    }
+    
+    // Helper function to handle audio stream
+    const handleAudioStream = async (response: Response) => {
+        const mediaSource = new MediaSource()
+        const audioUrl = URL.createObjectURL(mediaSource)
+        setAudioUrl(audioUrl)
+    
+        if (audioRef.current) {
+            audioRef.current.src = audioUrl
+        }
+    
+        mediaSource.addEventListener("sourceopen", async () => {
+            const sourceBuffer = mediaSource.addSourceBuffer('audio/mpeg') // Adjust MIME type if needed
+            const reader = response.body?.getReader()
+    
+            if (!reader) {
+                throw new Error("Failed to create stream reader")
+            }
+    
+            try {
+                while (true) {
+                    const { done, value } = await reader.read()
+                    if (done) {
+                        if (mediaSource.readyState === "open") {
+                            mediaSource.endOfStream()
+                        }
+                        break
+                    }
+    
+                    // Wait for the SourceBuffer to be ready for more data
+                    if (sourceBuffer.updating || mediaSource.readyState !== "open") {
+                        await new Promise((resolve) => {
+                            sourceBuffer.addEventListener("updateend", resolve, { once: true })
+                        })
+                        continue // Retry the loop after waiting
+                    }
+    
+                    sourceBuffer.appendBuffer(value)
+    
+                    // Wait for the SourceBuffer to finish processing the current chunk
+                    await new Promise((resolve) => {
+                        sourceBuffer.addEventListener("updateend", resolve, { once: true })
+                    })
+                }
+            } catch (error) {
+                console.error("Error processing audio stream:", error)
+                cleanupMediaSource(mediaSource, audioUrl)
+            }
+        })
+    }
+    
+    // Helper function to clean up MediaSource
+    const cleanupMediaSource = (mediaSource: MediaSource, audioUrl: string | null) => {
+        if (mediaSource.readyState === "open") {
+            mediaSource.endOfStream()
+        }
+        if (audioUrl) {
+            URL.revokeObjectURL(audioUrl)
+            setAudioUrl(null)
         }
     }
 
@@ -171,7 +182,7 @@ export default function App() {
     async function getPageText(page: PDFPageProxy) {
         const textContent = await page.getTextContent()
         const textItems = textContent.items as TextItem[]
-        const text = textItems.map(item => item.str).join(' ')
+        return textItems.map(item => item.str).join(' ')
     }
 
     function clearAudio() {
@@ -224,8 +235,8 @@ export default function App() {
                             setAudioUrl(null)
                         }}
                         onError={(error) => {
-                            const nativeEvent = error.nativeEvent; // Access the native browser event
-                            console.error("Audio playback error:", nativeEvent);
+                            const nativeEvent = error.nativeEvent // Access the native browser event
+                            console.error("Audio playback error:", nativeEvent)
                             URL.revokeObjectURL(audioUrl)
                             setAudioUrl(null)
                         }}
