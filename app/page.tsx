@@ -23,7 +23,7 @@ export default function App() {
     const [pageNumber, setPageNumber] = useState(1)
     const [audioUrl, setAudioUrl] = useState<string | null>(null)
     const [audioControllables, setAudioControllables] = useState<AduioControllable>({voice: "Angelo", speed: 1, temperature: .1})
-    const [isGenerating, setIsGenerating] = useState(false);
+    const [isGenerating, setIsGenerating] = useState(false)
     const audioRef = useRef<HTMLAudioElement | null>(null)
     
     useEffect(() => {
@@ -55,11 +55,11 @@ export default function App() {
 
         // Clean up previous audio
         if (audioRef.current) {
-            audioRef.current.pause() // Pause the current audio
-            audioRef.current.src = "" // Clear the src to stop loading
+            audioRef.current.pause()
+            audioRef.current.src = ""
         }
         if (audioUrl) {
-            URL.revokeObjectURL(audioUrl) // Remove the previous URL
+            URL.revokeObjectURL(audioUrl)
             setAudioUrl(null)
         }
     }
@@ -67,7 +67,6 @@ export default function App() {
     const onSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         console.log("uploading")
-        // Get the specific page
         setIsGenerating(true)
         if (!pdf) {
             return
@@ -117,53 +116,52 @@ export default function App() {
     
             // Handle MediaSource opening
             mediaSource.addEventListener("sourceopen", async () => {
-                // Create a SourceBuffer
-                const sourceBuffer = mediaSource.addSourceBuffer('audio/mpeg'); // Adjust MIME type if needed
+                const sourceBuffer = mediaSource.addSourceBuffer('audio/mpeg') // Adjust MIME type if needed
             
                 // Process chunks as they arrive
-                const reader = response.body?.getReader();
+                const reader = response.body?.getReader()
                 if (!reader) {
-                    throw new Error("Failed to create stream reader");
+                    throw new Error("Failed to create stream reader")
                 }
             
                 try {
                     while (true) {
-                        const { done, value } = await reader.read();
+                        const { done, value } = await reader.read()
                         if (done) {
                             if (mediaSource.readyState === "open") {
-                                mediaSource.endOfStream();
+                                mediaSource.endOfStream()
                             }
-                            setIsGenerating(false);
-                            break;
+                            setIsGenerating(false)
+                            break
                         }
             
                         // Check if the SourceBuffer is still valid
                         if (!sourceBuffer.updating && mediaSource.readyState === "open") {
-                            sourceBuffer.appendBuffer(value);
+                            sourceBuffer.appendBuffer(value)
                         } else {
-                            console.warn("SourceBuffer is not ready or MediaSource is not open");
-                            break;
+                            console.warn("SourceBuffer is not ready or MediaSource is not open")
+                            break
                         }
             
                         // Wait for the SourceBuffer to be ready for more data
                         await new Promise((resolve) => {
-                            sourceBuffer.addEventListener("updateend", resolve, { once: true });
-                        });
+                            sourceBuffer.addEventListener("updateend", resolve, { once: true })
+                        })
                     }
                 } catch (error) {
-                    console.error("Error processing audio stream:", error);
-                    setIsGenerating(false);
+                    console.error("Error processing audio stream:", error)
+                    setIsGenerating(false)
             
                     // Clean up MediaSource if an error occurs
                     if (mediaSource.readyState === "open") {
-                        mediaSource.endOfStream();
+                        mediaSource.endOfStream()
                     }
                     if (audioUrl) {
-                        URL.revokeObjectURL(audioUrl);
-                        setAudioUrl(null);
+                        URL.revokeObjectURL(audioUrl)
+                        setAudioUrl(null)
                     }
                 }
-            });
+            })
     
         } catch (error) {
             console.error("Error fetching or playing audio:", error)
@@ -177,12 +175,12 @@ export default function App() {
     function changePage(amount: number) {
         // Clean up audio when changing pages
         if (audioRef.current) {
-            audioRef.current.pause(); 
-            audioRef.current.src = ""; // Clear the src to stop loading
+            audioRef.current.pause() 
+            audioRef.current.src = "" // Clear the src to stop loading
         }
         if (audioUrl) {
-            URL.revokeObjectURL(audioUrl); // Remove the previous URL
-            setAudioUrl(null); // Reset the audio URL state
+            URL.revokeObjectURL(audioUrl)
+            setAudioUrl(null)
         }
         setIsGenerating(false)
         setPageNumber(Math.min(Math.max(1, pageNumber + amount), numPages))
