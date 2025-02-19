@@ -35,6 +35,7 @@ export default function App() {
     }, [audioUrl])
 
     const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        setIsGenerating(false)
         const selectedFile = e.target.files?.[0]
         setFile(selectedFile)
 
@@ -116,33 +117,53 @@ export default function App() {
     
             // Handle MediaSource opening
             mediaSource.addEventListener("sourceopen", async () => {
-                const sourceBuffer = mediaSource.addSourceBuffer('audio/mpeg') // Adjust MIME type if needed
-    
+                // Create a SourceBuffer
+                const sourceBuffer = mediaSource.addSourceBuffer('audio/mpeg'); // Adjust MIME type if needed
+            
                 // Process chunks as they arrive
-                const reader = response.body?.getReader()
+                const reader = response.body?.getReader();
                 if (!reader) {
-                    throw new Error("Failed to create stream reader")
+                    throw new Error("Failed to create stream reader");
                 }
-    
-                while (true) {
-                    const { done, value } = await reader.read()
-                    if (done) {
-                        mediaSource.endOfStream()
-                        break
+            
+                try {
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) {
+                            if (mediaSource.readyState === "open") {
+                                mediaSource.endOfStream();
+                            }
+                            setIsGenerating(false);
+                            break;
+                        }
+            
+                        // Check if the SourceBuffer is still valid
+                        if (!sourceBuffer.updating && mediaSource.readyState === "open") {
+                            sourceBuffer.appendBuffer(value);
+                        } else {
+                            console.warn("SourceBuffer is not ready or MediaSource is not open");
+                            break;
+                        }
+            
+                        // Wait for the SourceBuffer to be ready for more data
+                        await new Promise((resolve) => {
+                            sourceBuffer.addEventListener("updateend", resolve, { once: true });
+                        });
                     }
-    
-                    // Append the chunk to the SourceBuffer
-                    if (!audioUrl) {
-                        return
+                } catch (error) {
+                    console.error("Error processing audio stream:", error);
+                    setIsGenerating(false);
+            
+                    // Clean up MediaSource if an error occurs
+                    if (mediaSource.readyState === "open") {
+                        mediaSource.endOfStream();
                     }
-                    sourceBuffer.appendBuffer(value)
-    
-                    // Wait for the SourceBuffer to be ready for more data
-                    await new Promise((resolve) => {
-                        sourceBuffer.addEventListener("updateend", resolve, { once: true })
-                    })
+                    if (audioUrl) {
+                        URL.revokeObjectURL(audioUrl);
+                        setAudioUrl(null);
+                    }
                 }
-            })
+            });
     
         } catch (error) {
             console.error("Error fetching or playing audio:", error)
