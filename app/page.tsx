@@ -49,11 +49,11 @@ export default function App() {
         
         // Save current state of submission, and reset states for anything else for new file
         setTimeout(() => {
-            setIsGenerating(false);
-            setFile(selectedFile);
-            setPDF(pdf);
-            setPageNumber(1); // Reset page number when a new file is uploaded
-            clearAudio();     // Clean up previous audio
+            setIsGenerating(false)
+            setFile(selectedFile)
+            setPDF(pdf)
+            setPageNumber(1) // Reset page number when a new file is uploaded
+            clearAudio()     // Clean up previous audio
         }, 500)
     }
 
