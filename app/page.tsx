@@ -8,7 +8,9 @@ import "react-pdf/dist/esm/Page/AnnotationLayer.css"
 import { voices } from "./consts"
 import { AduioControllable } from "./types"
 import { TextItem } from "pdfjs-dist/types/src/display/api"
+import { PDFDocumentProxy
 
+ } from "pdfjs-dist/types/src/display/api"
 if (typeof window !== 'undefined') {
     pdfJS.GlobalWorkerOptions.workerSrc =
         window.location.origin + '/pdf.worker.min.mjs'
@@ -16,7 +18,7 @@ if (typeof window !== 'undefined') {
 
 export default function App() {
     const [file, setFile] = useState<File | undefined>(undefined)
-    const [text, setText] = useState<string | null>(null)
+    const [pdf, setPDF] = useState<PDFDocumentProxy | null>(null)
     const [numPages, setNumPages] = useState<number>(0)
     const [pageNumber, setPageNumber] = useState(1)
     const [isLoadingAudio, setIsLoadingAudio] = useState(false)
@@ -40,16 +42,9 @@ export default function App() {
             return
         }
 
-        const loadingTask = pdfJS.getDocument({ data: await selectedFile.arrayBuffer() });
-        const pdf = await loadingTask.promise;
-      
-        // Get the specific page
-        const page = await pdf.getPage(pageNumber);
-      
-        // Extract text from the page
-        const textContent = await page.getTextContent();
-        const textItems = textContent.items as TextItem[];
-        const text = textItems.map(item => item.str).join(' ')
+        const loadingTask = pdfJS.getDocument({ data: await selectedFile.arrayBuffer() })
+        const pdf = await loadingTask.promise
+        setPDF(pdf)
 
         setPageNumber(1) // Reset page number when a new file is uploaded
 
@@ -66,14 +61,23 @@ export default function App() {
             URL.revokeObjectURL(audioUrl) // Remove the previous URL
             setAudioUrl(null)
         }
-
-        console.log("parsing text")
-        setText(text)
     }
 
     const onSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         console.log("uploading")
+        // Get the specific page
+
+        if (!pdf) {
+            return
+        }
+        const page = await pdf.getPage(pageNumber)
+      
+        // Extract text from the page
+        const textContent = await page.getTextContent()
+        const textItems = textContent.items as TextItem[]
+        const text = textItems.map(item => item.str).join(' ')
+
         const response = await fetch("/api", {
             method: "POST",
             headers: {
@@ -242,7 +246,7 @@ export default function App() {
                                 step=".1"
                                 value={audioControllables.speed}
                                 onChange={(e) => {
-                                    const newValue = parseFloat(e.target.value);
+                                    const newValue = parseFloat(e.target.value)
                                     setAudioControllables({
                                         ...audioControllables,
                                         speed: newValue === 0 ? 0.1 : newValue, // Ensure speed is never 0
@@ -265,7 +269,7 @@ export default function App() {
                                 step=".1"
                                 value={audioControllables.temperature}
                                 onChange={(e) => {
-                                    const newValue = parseFloat(e.target.value);
+                                    const newValue = parseFloat(e.target.value)
                                     setAudioControllables({
                                         ...audioControllables,
                                         temperature: newValue === 0 ? 0.1 : newValue, // Ensure speed is never 0
@@ -279,12 +283,12 @@ export default function App() {
                             type="submit"
                             className={`w-full px-6 py-3 text-white font-semibold rounded-lg shadow-md transition-all duration-200
                                 ${
-                                    text === null
+                                    pdf === null
                                         ? "bg-gray-400 cursor-not-allowed opacity-75" // Disabled state
                                         : "bg-blue-500 hover:bg-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75" // Enabled state
                                 }
                             `}
-                            disabled={text === null}
+                            disabled={pdf === null}
                         >
                             Generate Audio
                         </button>
