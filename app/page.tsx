@@ -80,8 +80,6 @@ export default function App() {
     
         } catch (error) {
             console.error("Error fetching or playing audio:", error)
-        } finally {
-            setIsGenerating(false)
         }
     }
     
@@ -132,6 +130,7 @@ export default function App() {
                         if (mediaSource.readyState === "open") {
                             mediaSource.endOfStream()
                         }
+                        setIsGenerating(false)
                         break
                     }
     
