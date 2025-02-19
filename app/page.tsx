@@ -48,11 +48,13 @@ export default function App() {
         const pdf = await loadingTask.promise
         
         // Save current state of submission, and reset states for anything else for new file
-        setIsGenerating(false)
-        setFile(selectedFile)
-        setPDF(pdf)
-        setPageNumber(1) // Reset page number when a new file is uploaded
-        clearAudio()     // Clean up previous audio
+        setTimeout(() => {
+            setIsGenerating(false);
+            setFile(selectedFile);
+            setPDF(pdf);
+            setPageNumber(1); // Reset page number when a new file is uploaded
+            clearAudio();     // Clean up previous audio
+        }, 500)
     }
 
     const onSubmit = async (e: React.FormEvent) => {
@@ -171,9 +173,11 @@ export default function App() {
 
     function changePage(amount: number) {
         // Clean up audio when changing pages
-        clearAudio()
-        setIsGenerating(false)
-        setPageNumber(Math.min(Math.max(1, pageNumber + amount), numPages))
+        setTimeout(() => {
+            clearAudio()
+            setIsGenerating(false)
+            setPageNumber(Math.min(Math.max(1, pageNumber + amount), numPages))
+        }, 500)
     }
 
     async function getPageText(page: PDFPageProxy) {
