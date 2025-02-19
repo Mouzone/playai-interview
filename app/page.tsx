@@ -158,7 +158,7 @@ export default function App() {
     }
 
     return (
-        <div className="flex gap-10 p-10 items-center">
+        <div className="flex gap-10 p-10 items-center justify-center">
             <div>
                 <div className="flex flex-col items-center">
                     {file ? (
