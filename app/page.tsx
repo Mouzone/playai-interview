@@ -192,9 +192,9 @@ export default function App() {
             <div>
                 <div className="flex flex-col items-center">
                     {file ? (
-                        <div className="w-[600px] h-[800px] overflow-hidden border border-gray-300 shadow-lg">
+                        <div className="w-[500px] h-[700px] overflow-hidden border border-gray-300 shadow-lg">
                         <Document file={file} onLoadSuccess={onDocumentLoadSuccess}>
-                            <Page pageNumber={pageNumber} height={800} scale={1}/>
+                            <Page pageNumber={pageNumber} width={500} scale={1}/>
                         </Document>
                         </div>
                     ) : (
