@@ -13,6 +13,7 @@ import { PDFDocumentProxy
  } from "pdfjs-dist/types/src/display/api"
 import AudioControllables from "./components/AudioControllables"
 import PDFNav from "./components/PDFNav"
+import { PDFPageProxy } from "pdfjs-dist/types/web/interfaces"
 
 if (typeof window !== 'undefined') {
     pdfJS.GlobalWorkerOptions.workerSrc =
@@ -38,48 +39,32 @@ export default function App() {
     }, [audioUrl])
 
     const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        setIsGenerating(false)
         const selectedFile = e.target.files?.[0]
-        setFile(selectedFile)
 
         if (!selectedFile) {
             return
         }
 
+        // Save pdf to scrape pages for later
         const loadingTask = pdfJS.getDocument({ data: await selectedFile.arrayBuffer() })
         const pdf = await loadingTask.promise
+        
+        // Save current state of submission, and reset states for anything else for new file
+        setIsGenerating(false)
+        setFile(selectedFile)
         setPDF(pdf)
-
         setPageNumber(1) // Reset page number when a new file is uploaded
-
-        if (!selectedFile) {
-            return
-        }
-
-        // Clean up previous audio
-        if (audioRef.current) {
-            audioRef.current.pause()
-            audioRef.current.src = ""
-        }
-        if (audioUrl) {
-            URL.revokeObjectURL(audioUrl)
-            setAudioUrl(null)
-        }
+        clearAudio()     // Clean up previous audio
     }
 
     const onSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        console.log("uploading")
         setIsGenerating(true)
         if (!pdf) {
             return
         }
         const page = await pdf.getPage(pageNumber)
-      
-        // Extract text from the page
-        const textContent = await page.getTextContent()
-        const textItems = textContent.items as TextItem[]
-        const text = textItems.map(item => item.str).join(' ')
+        const text = getPageText(page)
 
         try {
             const response = await fetch("/api", {
@@ -178,6 +163,18 @@ export default function App() {
 
     function changePage(amount: number) {
         // Clean up audio when changing pages
+        clearAudio()
+        setIsGenerating(false)
+        setPageNumber(Math.min(Math.max(1, pageNumber + amount), numPages))
+    }
+
+    async function getPageText(page: PDFPageProxy) {
+        const textContent = await page.getTextContent()
+        const textItems = textContent.items as TextItem[]
+        const text = textItems.map(item => item.str).join(' ')
+    }
+
+    function clearAudio() {
         if (audioRef.current) {
             audioRef.current.pause() 
             audioRef.current.src = "" // Clear the src to stop loading
@@ -186,10 +183,7 @@ export default function App() {
             URL.revokeObjectURL(audioUrl)
             setAudioUrl(null)
         }
-        setIsGenerating(false)
-        setPageNumber(Math.min(Math.max(1, pageNumber + amount), numPages))
     }
-
     return (
         <div className="flex gap-10 p-10 items-center justify-center">
             <div className="flex flex-col items-center">
