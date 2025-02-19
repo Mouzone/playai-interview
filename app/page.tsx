@@ -130,7 +130,6 @@ export default function App() {
                             if (mediaSource.readyState === "open") {
                                 mediaSource.endOfStream()
                             }
-                            setIsGenerating(false)
                             break
                         }
             
@@ -354,7 +353,8 @@ export default function App() {
                             setAudioUrl(null)
                         }}
                         onError={(error) => {
-                            console.error("Audio playback error:", error)
+                            const nativeEvent = error.nativeEvent; // Access the native browser event
+                            console.error("Audio playback error:", nativeEvent);
                             URL.revokeObjectURL(audioUrl)
                             setAudioUrl(null)
                         }}
