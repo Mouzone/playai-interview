@@ -8,9 +8,7 @@ import "react-pdf/dist/esm/Page/AnnotationLayer.css"
 import { voices } from "./consts"
 import { AudioControllable } from "./types"
 import { TextItem } from "pdfjs-dist/types/src/display/api"
-import { PDFDocumentProxy
-
- } from "pdfjs-dist/types/src/display/api"
+import { PDFDocumentProxy} from "pdfjs-dist/types/src/display/api"
 import AudioControllables from "./components/AudioControllables"
 import PDFNav from "./components/PDFNav"
 import { PDFPageProxy } from "pdfjs-dist/types/web/interfaces"
