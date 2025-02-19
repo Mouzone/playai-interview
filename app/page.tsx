@@ -96,56 +96,56 @@ export default function App() {
                     voiceConditioningSeconds: 20,
                     language: "english",
                 }),
-            });
+            })
     
-            console.log("starting stream");
-            setIsLoadingAudio(true);
+            console.log("starting stream")
+            setIsLoadingAudio(true)
     
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status} ${response.statusText}`);
+                throw new Error(`HTTP error! status: ${response.status} ${response.statusText}`)
             }
     
             // Create a MediaSource to handle streaming audio
-            const mediaSource = new MediaSource();
-            const audioUrl = URL.createObjectURL(mediaSource);
-            setAudioUrl(audioUrl);
+            const mediaSource = new MediaSource()
+            const audioUrl = URL.createObjectURL(mediaSource)
+            setAudioUrl(audioUrl)
     
             // Set up the audio element
             if (audioRef.current) {
-                audioRef.current.src = audioUrl;
+                audioRef.current.src = audioUrl
             }
     
             // Handle MediaSource opening
             mediaSource.addEventListener("sourceopen", async () => {
-                const sourceBuffer = mediaSource.addSourceBuffer('audio/mpeg'); // Adjust MIME type if needed
+                const sourceBuffer = mediaSource.addSourceBuffer('audio/mpeg') // Adjust MIME type if needed
     
                 // Process chunks as they arrive
-                const reader = response.body?.getReader();
+                const reader = response.body?.getReader()
                 if (!reader) {
-                    throw new Error("Failed to create stream reader");
+                    throw new Error("Failed to create stream reader")
                 }
     
                 while (true) {
-                    const { done, value } = await reader.read();
+                    const { done, value } = await reader.read()
                     if (done) {
-                        mediaSource.endOfStream();
-                        setIsLoadingAudio(false);
-                        break;
+                        mediaSource.endOfStream()
+                        setIsLoadingAudio(false)
+                        break
                     }
     
                     // Append the chunk to the SourceBuffer
-                    sourceBuffer.appendBuffer(value);
+                    sourceBuffer.appendBuffer(value)
     
                     // Wait for the SourceBuffer to be ready for more data
                     await new Promise((resolve) => {
-                        sourceBuffer.addEventListener("updateend", resolve, { once: true });
-                    });
+                        sourceBuffer.addEventListener("updateend", resolve, { once: true })
+                    })
                 }
-            });
+            })
     
         } catch (error) {
-            console.error("Error fetching or playing audio:", error);
-            setIsLoadingAudio(false);
+            console.error("Error fetching or playing audio:", error)
+            setIsLoadingAudio(false)
         }
     }
 
