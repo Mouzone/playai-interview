@@ -21,11 +21,11 @@ export default function App() {
     const [pdf, setPDF] = useState<PDFDocumentProxy | null>(null)
     const [numPages, setNumPages] = useState<number>(0)
     const [pageNumber, setPageNumber] = useState(1)
-    const [isLoadingAudio, setIsLoadingAudio] = useState(false)
     const [audioUrl, setAudioUrl] = useState<string | null>(null)
     const [audioControllables, setAudioControllables] = useState<AduioControllable>({voice: "Angelo", speed: 1, temperature: .1})
+    const [isGenerating, setIsGenerating] = useState(false);
     const audioRef = useRef<HTMLAudioElement | null>(null)
-
+    
     useEffect(() => {
         return () => {
             if (audioUrl) {
@@ -67,7 +67,7 @@ export default function App() {
         e.preventDefault()
         console.log("uploading")
         // Get the specific page
-
+        setIsGenerating(true)
         if (!pdf) {
             return
         }
@@ -99,7 +99,6 @@ export default function App() {
             })
     
             console.log("starting stream")
-            setIsLoadingAudio(true)
     
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status} ${response.statusText}`)
@@ -129,7 +128,6 @@ export default function App() {
                     const { done, value } = await reader.read()
                     if (done) {
                         mediaSource.endOfStream()
-                        setIsLoadingAudio(false)
                         break
                     }
     
@@ -145,7 +143,6 @@ export default function App() {
     
         } catch (error) {
             console.error("Error fetching or playing audio:", error)
-            setIsLoadingAudio(false)
         }
     }
 
@@ -154,6 +151,16 @@ export default function App() {
     }
 
     function changePage(amount: number) {
+        // Clean up audio when changing pages
+        if (audioRef.current) {
+            audioRef.current.pause(); 
+            audioRef.current.src = ""; // Clear the src to stop loading
+        }
+        if (audioUrl) {
+            URL.revokeObjectURL(audioUrl); // Remove the previous URL
+            setAudioUrl(null); // Reset the audio URL state
+        }
+        setIsGenerating(false)
         setPageNumber(Math.min(Math.max(1, pageNumber + amount), numPages))
     }
 
@@ -302,12 +309,12 @@ export default function App() {
                         type="submit"
                         className={`w-full px-6 py-3 text-white font-semibold rounded-lg shadow-md transition-all duration-200
                             ${
-                                pdf === null
+                                pdf === null || isGenerating
                                     ? "bg-gray-400 cursor-not-allowed opacity-75" // Disabled state
                                     : "bg-blue-500 hover:bg-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75" // Enabled state
                             }
                         `}
-                        disabled={pdf === null}
+                        disabled={pdf === null || isGenerating}
                     >
                         Generate Audio
                     </button>
