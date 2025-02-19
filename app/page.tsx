@@ -118,7 +118,6 @@ export default function App() {
             mediaSource.addEventListener("sourceopen", async () => {
                 const sourceBuffer = mediaSource.addSourceBuffer('audio/mpeg') // Adjust MIME type if needed
             
-                // Process chunks as they arrive
                 const reader = response.body?.getReader()
                 if (!reader) {
                     throw new Error("Failed to create stream reader")
@@ -135,15 +134,18 @@ export default function App() {
                             break
                         }
             
-                        // Check if the SourceBuffer is still valid
-                        if (!sourceBuffer.updating && mediaSource.readyState === "open") {
-                            sourceBuffer.appendBuffer(value)
-                        } else {
-                            console.warn("SourceBuffer is not ready or MediaSource is not open")
-                            break
+                        // Wait for the SourceBuffer to be ready for more data
+                        if (sourceBuffer.updating || mediaSource.readyState !== "open") {
+                            // If the SourceBuffer is updating or the MediaSource is not open, wait and retry
+                            await new Promise((resolve) => {
+                                sourceBuffer.addEventListener("updateend", resolve, { once: true })
+                            })
+                            continue // Retry the loop after waiting
                         }
             
-                        // Wait for the SourceBuffer to be ready for more data
+                        sourceBuffer.appendBuffer(value)
+            
+                        // Wait for the SourceBuffer to finish processing the current chunk
                         await new Promise((resolve) => {
                             sourceBuffer.addEventListener("updateend", resolve, { once: true })
                         })
