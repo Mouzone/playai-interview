@@ -78,43 +78,71 @@ export default function App() {
         const textItems = textContent.items as TextItem[]
         const text = textItems.map(item => item.str).join(' ')
 
-        const response = await fetch("/api", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                model: "PlayDialog",
-                text,
-                voice: voices[audioControllables["voice"]],
-                outputFormat: "mp3",
-                speed: audioControllables["speed"],
-                sampleRate: 24000,
-                seed: null,
-                temperature: null,
-                voiceConditioningSeconds: 20,
-                language: "english"
-            })
-        })
-
-        console.log("starting stream")
-        setIsLoadingAudio(true)
         try {
+            const response = await fetch("/api", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    model: "PlayDialog",
+                    text,
+                    voice: voices[audioControllables["voice"]],
+                    outputFormat: "mp3",
+                    speed: audioControllables["speed"],
+                    sampleRate: 24000,
+                    seed: null,
+                    temperature: null,
+                    voiceConditioningSeconds: 20,
+                    language: "english",
+                }),
+            })
+    
+            console.log("starting stream")
+            setIsLoadingAudio(true)
+    
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status} ${response.statusText}`)
             }
     
-            const blob = await response.blob()
-            const newAudioUrl = URL.createObjectURL(blob)
-            setAudioUrl(newAudioUrl)
-
-            // Play the new audio
+            // Create a MediaSource to handle streaming audio
+            const mediaSource = new MediaSource()
+            const audioUrl = URL.createObjectURL(mediaSource)
+            setAudioUrl(audioUrl)
+    
+            // Set up the audio element
             if (audioRef.current) {
-                audioRef.current.src = newAudioUrl
-                audioRef.current.play()
+                audioRef.current.src = audioUrl
             }
-
-            setIsLoadingAudio(false)
+    
+            // Handle MediaSource opening
+            mediaSource.addEventListener("sourceopen", async () => {
+                const sourceBuffer = mediaSource.addSourceBuffer('audio/mpeg') // Adjust MIME type if needed
+    
+                // Process chunks as they arrive
+                const reader = response.body?.getReader()
+                if (!reader) {
+                    throw new Error("Failed to create stream reader")
+                }
+    
+                while (true) {
+                    const { done, value } = await reader.read()
+                    if (done) {
+                        mediaSource.endOfStream()
+                        setIsLoadingAudio(false)
+                        break
+                    }
+    
+                    // Append the chunk to the SourceBuffer
+                    sourceBuffer.appendBuffer(value)
+    
+                    // Wait for the SourceBuffer to be ready for more data
+                    await new Promise((resolve) => {
+                        sourceBuffer.addEventListener("updateend", resolve, { once: true })
+                    })
+                }
+            })
+    
         } catch (error) {
             console.error("Error fetching or playing audio:", error)
             setIsLoadingAudio(false)
@@ -295,22 +323,22 @@ export default function App() {
                     </form>
 
                     {audioUrl && (
-                            <audio
-                                ref={audioRef}
-                                controls
-                                src={audioUrl} // Set the audio source dynamically
-                                autoPlay // Auto-play the audio
-                                onEnded={() => {
-                                    URL.revokeObjectURL(audioUrl)
-                                    setAudioUrl(null)
-                                }}
-                                onError={(error) => {
-                                    console.error("Audio playback error:", error)
-                                    URL.revokeObjectURL(audioUrl)
-                                    setAudioUrl(null)
-                                }}
-                            />
-                        )}
+                        <audio
+                            ref={audioRef}
+                            controls
+                            src={audioUrl} // Set the audio source dynamically
+                            autoPlay // Auto-play the audio
+                            onEnded={() => {
+                                URL.revokeObjectURL(audioUrl)
+                                setAudioUrl(null)
+                            }}
+                            onError={(error) => {
+                                console.error("Audio playback error:", error)
+                                URL.revokeObjectURL(audioUrl)
+                                setAudioUrl(null)
+                            }}
+                        />
+                    )}
                 </div>
             </div>
         </>
