@@ -98,7 +98,7 @@ export default function App() {
                 speed: audioControllables["speed"],
                 sampleRate: 24000,
                 seed: null,
-                temperature: null,
+                temperature: audioControllables["temperature"],
                 voiceConditioningSeconds: 20,
                 language: "english",
             }),
