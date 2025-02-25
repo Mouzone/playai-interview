@@ -24,7 +24,7 @@ export default function App() {
     const [numPages, setNumPages] = useState<number>(0)
     const [pageNumber, setPageNumber] = useState(1)
     const [audioUrl, setAudioUrl] = useState<string | null>(null)
-    const [audioControllables, setAudioControllables] = useState<AudioControllable>({voice: "Angelo", speed: 1, temperature: .1})
+    const [audioControllables, setAudioControllables] = useState<AudioControllable>({voice: "Angelo", speed: 1, temperature: 1})
     const [isGenerating, setIsGenerating] = useState(false)
     const audioRef = useRef<HTMLAudioElement | null>(null)
     
